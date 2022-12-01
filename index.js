@@ -18,11 +18,18 @@ async function run() {
 
     const categoriesCollection = client.db('shamimSarker').collection("categories");
     const notesCollection = client.db('shamimSarker').collection("notes");
+    const usersCollection = client.db('shamimSarker').collection("users");
 
-    // Add a category
+    // Post a user
+    app.post('/users', async (req, res) => {
+      const user = req.body;
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
+
+    // Post a category
     app.post('/categories', async (req, res) => {
       const category = req.body;
-      console.log(category);
       const result = await categoriesCollection.insertOne(category);
       res.send(result);
       console.log('Category is added successfully!');
@@ -35,7 +42,7 @@ async function run() {
       res.send(result);
     });
 
-    // Get all categories
+    // Get categories by category
     app.get('/categories/:category', async (req, res) => {
       const category = req.params.category;
       const query = {category: category};
@@ -43,13 +50,27 @@ async function run() {
       res.send(result);
     });
 
-    // Add a note
+    // Post a note
     app.post('/notes', async (req, res) => {
       const note = req.body;
-      console.log(note);
       const result = await notesCollection.insertOne(note);
       res.send(result);
-      console.log('Note is added successfully!');
+    });
+
+    // Get notes by category
+    app.get('/notes/:category', async (req, res) => {
+      const category = req.params.category;
+      const query = {category: category};
+      const result = await notesCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // Get notes by id
+    app.get('/notes/id/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = {_id: ObjectId(id)};
+      const result = await notesCollection.findOne(query);
+      res.send(result);
     });
 
 
