@@ -46,6 +46,55 @@ async function run() {
       res.send(result);
     });
 
+    // get users by query parameters
+    /* app.get('/usrs', async (req, res) => {
+      const query = {
+        role: req.query.role || 'reader',
+        isVerified: Boolean(req.query.verified) || false,
+        isSuperAdmin: Boolean(req.query.superAdmin) || false
+      };
+      const result = await usersCollection.find(query).toArray();
+      res.send(result);
+    }); */
+
+    // get all admins
+    app.get('/users/admins', async (req, res) => {
+      const query = {
+        isAdmin: true
+      };
+      const result = await usersCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // get all writer
+    app.get('/users/writers', async (req, res) => {
+      const query = {
+        isAdmin: false,
+        role: 'writer'
+      };
+      const result = await usersCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // get all reader
+    app.get('/users/readers', async (req, res) => {
+      const query = {
+        isAdmin: false,
+        role: 'reader'
+      };
+      const result = await usersCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // Get all removed users
+    app.get('/removed-users', async (req, res) => {
+      const query = {
+        isRemoved: true
+      };
+      const result = await usersCollection.find(query).toArray();
+      res.send(result);
+    });
+
     // Update to verify
     app.put('/users/verify/:id', async (req, res) => {
       const id = req.params.id;
@@ -90,8 +139,25 @@ async function run() {
     app.put('/users/remove-user/:id', async (req, res) => {
       const id = req.params.id;
       const filter = {_id: ObjectId(id)};
+      const complainer = req.body;
+      const option = {upsert: true};
+      const updatedUser = {
+        $set: {
+          isRemoved: true,
+          complainerName: complainer.complainerName,
+          complainerEmail: complainer.complainerEmail,
+        }
+      };
+      const result = await usersCollection.updateOne(filter, updatedUser, option);
+      res.send(result);
+    });
+
+    // Update to restore user
+    app.put('/users/restore-user/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = {_id: ObjectId(id)};
       const option = {upsert: false};
-      const updatedUser = {$set: {isRemoved: true}};
+      const updatedUser = {$set: {isRemoved: false}};
       const result = await usersCollection.updateOne(filter, updatedUser, option);
       res.send(result);
     });
@@ -101,70 +167,6 @@ async function run() {
       const email = req.params.email;
       const query = {email: email};
       const result = await usersCollection.findOne(query);
-      res.send(result);
-    });
-
-    app.get('/usrs', async (req, res) => {
-      const query = {
-        role: req.query.role || 'reader',
-        isVerified: Boolean(req.query.verified) || false,
-        isSuperAdmin: Boolean(req.query.superAdmin) || false
-      };
-      console.log(query);
-      const result = await usersCollection.find(query).toArray();
-      res.send(result);
-    });
-
-
-    /*******************************
-    * Interview Category Related API
-    ********************************/
-    // Post a interview category
-    app.post('/interviewCategories', async (req, res) => {
-      const interviewCategory = req.body;
-      const result = await interviewCategoriesCollection.insertOne(interviewCategory);
-      res.send(result);
-      console.log('Interviews Category is added successfully!');
-    });
-
-    // Get all interview categories
-    app.get('/interviewCategories', async (req, res) => {
-      const query = {};
-      const result = await interviewCategoriesCollection.find(query).toArray();
-      res.send(result);
-    });
-
-    // Get interview categories by category
-    app.get('/interviewCategories/:interviewCategory', async (req, res) => {
-      const interviewCategory = req.params.interviewCategory;
-      const query = {category: interviewCategory};
-      const result = await interviewCategoriesCollection.findOne(query);
-      res.send(result);
-    });
-
-    /*******************************
-    * Interview Question Related API
-    ********************************/
-    // Post a interview question note
-    app.post('/questions', async (req, res) => {
-      const question = req.body;
-      const result = await interviewQuestionsCollection.insertOne(question);
-      res.send(result);
-    });
-
-    // Get notes by category
-    app.get('/questions/:category', async (req, res) => {
-      const category = req.params.category;
-      const query = {category: category};
-      const result = await interviewQuestionsCollection.find(query).toArray();
-      res.send(result);
-    });
-
-    // Get interview notes by id
-    app.get('/questions/id/:id', async (req, res) => {
-      const id = req.params.id;
-      const query = {_id: ObjectId(id)};
-      const result = await interviewQuestionsCollection.findOne(query);
       res.send(result);
     });
 
@@ -194,6 +196,14 @@ async function run() {
       res.send(result);
     });
 
+    // Get categories by category type
+    app.get('/categories/categoryType/:categoryType', async (req, res) => {
+      const categoryType = req.params.categoryType;
+      const query = {categoryType: categoryType};
+      const result = await categoriesCollection.find(query).toArray();
+      res.send(result);
+    });
+
     /****************
     * Note Related API
     *****************/
@@ -201,6 +211,13 @@ async function run() {
     app.post('/notes', async (req, res) => {
       const note = req.body;
       const result = await notesCollection.insertOne(note);
+      res.send(result);
+    });
+
+    // Get all notes
+    app.get('/notes', async (req, res) => {
+      const query = {};
+      const result = await notesCollection.find(query).toArray();
       res.send(result);
     });
 
@@ -212,6 +229,14 @@ async function run() {
       res.send(result);
     });
 
+    // Get notes by category-type
+    app.get('/notes/category-type/:categoryType', async (req, res) => {
+      const categoryType = req.params.categoryType;
+      const query = {categoryType: categoryType};
+      const result = await notesCollection.find(query).toArray();
+      res.send(result);
+    });
+
     // Get notes by id
     app.get('/notes/id/:id', async (req, res) => {
       const id = req.params.id;
@@ -219,7 +244,6 @@ async function run() {
       const result = await notesCollection.findOne(query);
       res.send(result);
     });
-
 
 
     /*
