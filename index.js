@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const {MongoClient, ServerApiVersion, ObjectId} = require('mongodb');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const app = express();
@@ -9,6 +10,21 @@ const port = process.env.PORT || 5000;
 // middleware
 app.use(cors());
 app.use(express.json());
+
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if(!authHeader) {
+    return res.status(401).send({message: 'Unauthorized Access'});
+  }
+  const token = authHeader;
+  jwt.verify(token, process.env.ACCESS_TOKEN, function(err, decoded) {
+    if(err) {
+      return res.status(401).send({message: 'Unauthorized Access'});
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
 
 // Local Database
 const uri = 'mongodb://localhost:27017';
@@ -24,6 +40,15 @@ async function run() {
     const categoriesCollection = client.db('shamimSarker').collection("categories");
     const notesCollection = client.db('shamimSarker').collection("notes");
     const usersCollection = client.db('shamimSarker').collection("users");
+
+
+    /* JWT API */
+    app.post('/jwt', (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN);
+      console.log(token);
+      res.send({token});
+    });
 
     /*****************
     User Related API
@@ -247,8 +272,12 @@ async function run() {
     });
 
     // Get notes by email
-    app.get('/notes/email/:email', async (req, res) => {
+    app.get('/notes/email/:email', verifyJWT, async (req, res) => {
+      const decoded = req.decoded;
       const email = req.params.email;
+      if(decoded.email !== email) {
+        res.status(401).send({message: 'Unauthorized Access'});
+      }
       const query = {userEmail: email};
       const result = await notesCollection.find(query).toArray();
       res.send(result);
