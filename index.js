@@ -40,7 +40,7 @@ async function run() {
     const categoriesCollection = client.db('shamimSarker').collection("categories");
     const notesCollection = client.db('shamimSarker').collection("notes");
     const usersCollection = client.db('shamimSarker').collection("users");
-
+    const favoritesCollection = client.db('shamimSarker').collection("favorites");
 
     /* JWT API */
     app.post('/jwt', (req, res) => {
@@ -242,7 +242,18 @@ async function run() {
 
     // Get all notes
     app.get('/notes', async (req, res) => {
-      const query = {};
+      const query = {
+        isRemoved: false
+      };
+      const result = await notesCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // Get all removed notes
+    app.get('/removed-notes', async (req, res) => {
+      const query = {
+        isRemoved: true
+      };
       const result = await notesCollection.find(query).toArray();
       res.send(result);
     });
@@ -250,7 +261,10 @@ async function run() {
     // Get notes by category
     app.get('/notes/:category', async (req, res) => {
       const category = req.params.category;
-      const query = {category: category};
+      const query = {
+        category: category,
+        isRemoved: false
+      };
       const result = await notesCollection.find(query).toArray();
       res.send(result);
     });
@@ -258,7 +272,10 @@ async function run() {
     // Get notes by category-type
     app.get('/notes/category-type/:categoryType', async (req, res) => {
       const categoryType = req.params.categoryType;
-      const query = {categoryType: categoryType};
+      const query = {
+        categoryType: categoryType,
+        isRemoved: false
+      };
       const result = await notesCollection.find(query).toArray();
       res.send(result);
     });
@@ -278,10 +295,91 @@ async function run() {
       if(decoded.email !== email) {
         res.status(401).send({message: 'Unauthorized Access'});
       }
-      const query = {userEmail: email};
+      const query = {
+        userEmail: email,
+        isRemoved: false
+      };
       const result = await notesCollection.find(query).toArray();
       res.send(result);
     });
+
+    // update notes by id
+    app.put('/notes/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = {_id: ObjectId(id)};
+      const note = req.body;
+      const option = {upsert: true};
+      const updateDoc = {
+        $set: {
+          category: note.category,
+          heading: note.heading,
+          intro: note.intro,
+          code: note.code
+        }
+      };
+      const result = await notesCollection.updateOne(filter, updateDoc, option);
+      res.send(result);
+    });
+
+    // Update to remove notes
+    app.put('/notes/remove-note/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = {_id: ObjectId(id)};
+      const complainer = req.body;
+      const option = {upsert: true};
+      const updatedDoc = {
+        $set: {
+          isRemoved: true,
+          complainerName: complainer.complainerName,
+          complainerEmail: complainer.complainerEmail,
+        }
+      };
+      const result = await notesCollection.updateOne(filter, updatedDoc, option);
+      res.send(result);
+    });
+
+    // Update to restore note
+    app.put('/notes/restore-note/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = {_id: ObjectId(id)};
+      const option = {upsert: false};
+      const updatedDoc = {$set: {isRemoved: false}};
+      const result = await notesCollection.updateOne(filter, updatedDoc, option);
+      res.send(result);
+    });
+
+    /****************
+   * Favorite Related API
+   *****************/
+    // add to favorite list
+    app.post('/favorites', async (req, res) => {
+      const note = req.body;
+      const result = await favoritesCollection.insertOne(note);
+      res.send(result);
+    });
+
+    // get favorite list by email
+    app.get("/favorites/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = {
+        email: email,
+        isFavorite: true
+      };
+      const result = await favoritesCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // get favorite by query parameters
+    app.get('/favorites', async (req, res) => {
+      const query = {
+        email: req.query.email,
+        noteId: req.query.noteId
+      };
+      const result = await favoritesCollection.find(query).toArray();
+      res.send(result);
+    });
+
+
   } catch(error) {
     console.log(error.message);
   }
