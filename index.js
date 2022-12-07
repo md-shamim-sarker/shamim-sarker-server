@@ -27,12 +27,12 @@ function verifyJWT(req, res, next) {
 }
 
 // Local Database
-const uri = 'mongodb://localhost:27017';
-const client = new MongoClient(uri);
+// const uri = 'mongodb://localhost:27017';
+// const client = new MongoClient(uri);
 
 // Mongodb Atlas
-// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.egsefuu.mongodb.net/?retryWrites=true&w=majority`;
-// const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1});
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.egsefuu.mongodb.net/?retryWrites=true&w=majority`;
+const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1});
 
 async function run() {
   try {
@@ -230,6 +230,21 @@ async function run() {
       res.send(result);
     });
 
+    app.put('/categories/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = {_id: ObjectId(id)};
+      const category = req.body;
+      const option = {upsert: true};
+      const updatedDoc = {
+        $set: {
+          category: category.category,
+          categoryType: category.categoryType
+        }
+      };
+      const result = await categoriesCollection.updateOne(filter, updatedDoc, option);
+      res.send(result);
+    });
+
     /****************
     * Note Related API
     *****************/
@@ -348,6 +363,14 @@ async function run() {
       res.send(result);
     });
 
+    // Delete Notes
+    app.delete('/notes/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = {_id: ObjectId(id)};
+      const result = await notesCollection.deleteOne(query);
+      res.send(result);
+    });
+
     /****************
    * Favorite Related API
    *****************/
@@ -379,6 +402,13 @@ async function run() {
       res.send(result);
     });
 
+    // remove Favorite
+    app.delete('/favorites/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = {_id: ObjectId(id)};
+      const result = await favoritesCollection.deleteOne(query);
+      res.send(result);
+    });
 
   } catch(error) {
     console.log(error.message);
